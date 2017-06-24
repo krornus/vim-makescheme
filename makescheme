@@ -71,6 +71,7 @@ def main():
 
     while True:
         shuffle(colors)
+        print colors
         res = template.format(
             name=name, 
             bg=233, 
