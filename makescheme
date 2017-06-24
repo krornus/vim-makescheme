@@ -1,0 +1,71 @@
+#!/usr/bin/env python2
+import colortrans
+import os
+import itertools
+from random import shuffle
+from subprocess import call
+import gtk
+import pymouse
+
+root = os.path.dirname(os.path.abspath(__file__))
+colors = []
+mouse = pymouse.PyMouse()
+
+def get_pixel_color(i_x, i_y):
+	o_gdk_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, 1, 1)
+	o_gdk_pixbuf.get_from_drawable(gtk.gdk.get_default_root_window(), gtk.gdk.colormap_get_system(), i_x, i_y, 0, 0, 1, 1)
+	return tuple(o_gdk_pixbuf.get_pixels_array().tolist()[0][0])
+
+def get_color():
+    raw_input("press enter when ready: ")
+    x,y = mouse.position()
+    (r,g,b) = get_pixel_color(x, y)
+    hxd = rgbtohex(r,g,b)
+    code, rgb = colortrans.rgb2short(hxd)
+    return code
+
+def rgbtohex(r,g,b):
+    return format(r,"02x")+format(g,"02x")+format(b,"02x")
+
+def get_colors(n):
+    return [get_color() for x in range(n)]
+
+def get_colorscheme_template():
+    with open(root + "/templates/colorscheme.vim", "r") as f:
+        template = f.read()
+    return template
+
+def main():
+    name = raw_input("enter name: ")
+    colors = get_colors(8)
+    template = get_colorscheme_template()
+
+    while True:
+        shuffle(colors)
+        print colors
+        res = template.format(
+            name=name, 
+            bg=233, 
+            linenr=234,
+            clinenr=235,
+            c0=colors[0], 
+            c1=colors[1], 
+            c2=colors[2], 
+            c3=colors[3], 
+            c4=colors[4], 
+            c5=colors[5], 
+            c6=colors[6], 
+            c7=colors[7])
+        with open(root + "/colors/" + name + ".vim", "w") as f:
+            f.write(res)
+        cmd = "set rtp+={}|colorscheme {}".format(root, name)
+
+        call(["vim", root + "/templates/syntax.rb", "-c", cmd])
+
+        resume = raw_input("continue [y]/n: ")
+
+        if resume.lower() == "n" or resume.lower() == "no":
+            break
+
+if __name__ == "__main__":
+    main()
