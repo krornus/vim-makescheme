@@ -1,7 +1,8 @@
 #!/usr/bin/env python2
+import glob
 import colortrans
+import argparse
 import os
-import itertools
 from random import shuffle
 from subprocess import call
 import gtk
@@ -35,14 +36,41 @@ def get_colorscheme_template():
         template = f.read()
     return template
 
+def vim(root, f, c):
+    cmd = "set rtp+={}|colorscheme {}".format(root, c)
+    call(["vim", root + "/templates/{}".format(f), "-c", cmd])
+
 def main():
-    name = raw_input("enter name: ")
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--preview", "-p", action="store_true")
+    parser.add_argument("--name", "-n", type=str)
+
+    args = parser.parse_args()
+
+    if args.preview:
+        for f in glob.glob("colors/*.vim"):
+            colorscheme = os.path.splitext(os.path.basename(f))[0]
+            vim(root, "syntax.rb", colorscheme)
+            print colorscheme
+            resume = raw_input("continue [y]/n: ")
+            if resume.lower() == "n" or resume.lower() == "no":
+                break
+
+        exit(0)
+
+    if not args.name:
+        name = raw_input("enter name: ")
+    else:
+        name = args.name
+
     colors = get_colors(8)
     template = get_colorscheme_template()
+    hist = []
 
     while True:
         shuffle(colors)
-        print colors
         res = template.format(
             name=name, 
             bg=233, 
@@ -58,14 +86,16 @@ def main():
             c7=colors[7])
         with open(root + "/colors/" + name + ".vim", "w") as f:
             f.write(res)
-        cmd = "set rtp+={}|colorscheme {}".format(root, name)
+        
+        vim(root, "syntax.rb", name)
 
-        call(["vim", root + "/templates/syntax.rb", "-c", cmd])
-
-        resume = raw_input("continue [y]/n: ")
-
+        resume = raw_input("continue [y]/n/p: ")
         if resume.lower() == "n" or resume.lower() == "no":
             break
+        if resume.lower() == "p" or "pre" in resume.lower():
+            hist.pop()
+
+        hist.append(colors)
 
 if __name__ == "__main__":
     main()
